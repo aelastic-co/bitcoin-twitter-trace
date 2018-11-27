@@ -6,8 +6,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.stream.IntStream;
-
 @Service
 public class KafkaTweetProducer {
 
@@ -20,19 +18,20 @@ public class KafkaTweetProducer {
     }
 
     public void sendTweet(String tweet) {
-        kafkaProducer.send(new ProducerRecord("tweets", tweet),
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            Object o = mapper.readValue(tweet, Object.class);
+            tweet = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(o);
+        } catch (Exception e1) {
+            e1.printStackTrace();
+        }
+        ProducerRecord tweetRecord = new ProducerRecord("tweets", tweet);
+        kafkaProducer.send(tweetRecord,
                 (r, e) -> {
                     if (e != null) {
                         e.printStackTrace();
                     }
-                    ObjectMapper mapper = new ObjectMapper();
-                    try {
-                        Object o = mapper.readValue(tweet, Object.class);
-                        System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(o));
-                    } catch (Exception e1) {
-                        e1.printStackTrace();
-                    }
-                    IntStream.range(0,3).forEach(System.out::println);
+                    System.out.println(tweetRecord.value());
                 });
     }
 
